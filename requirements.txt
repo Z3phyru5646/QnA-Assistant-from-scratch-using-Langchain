@@ -3,6 +3,7 @@ streamlit>=1.30.0
 langchain>=0.1.0
 langchain-community>=0.0.10
 langchain-core>=0.1.10
+langchain-text-splitters>=0.2.0
 
 # ============ Vector Store ============
 chromadb>=0.4.22
@@ -11,8 +12,9 @@ chromadb>=0.4.22
 sentence-transformers>=2.2.2
 huggingface-hub>=0.20.0
 
-# ============ Local LLM ============
-llama-cpp-python>=0.2.0
+# ============ Remote LLM API ============
+openai>=1.10.0
+langchain-openai>=0.0.8
 
 # ============ PDF Processing ============
 PyMuPDF>=1.23.0

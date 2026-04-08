@@ -1,5 +1,6 @@
 """
 Custom CSS — Premium dark-themed Streamlit styling.
+Clean, open, spacious layout. Compact metrics. Glassmorphism.
 """
 
 CUSTOM_CSS = """
@@ -14,7 +15,7 @@ CUSTOM_CSS = """
 
     .main .block-container {
         padding-top: 1.5rem;
-        padding-bottom: 1rem;
+        padding-bottom: 1.5rem;
         max-width: 1400px;
     }
 
@@ -22,10 +23,10 @@ CUSTOM_CSS = """
     .app-header {
         background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
         border-radius: 16px;
-        padding: 24px 32px;
-        margin-bottom: 24px;
+        padding: 20px 28px;
+        margin-bottom: 12px;
         border: 1px solid rgba(102, 126, 234, 0.2);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
         position: relative;
         overflow: hidden;
     }
@@ -42,7 +43,7 @@ CUSTOM_CSS = """
     }
 
     .app-header h1 {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 800;
         background: linear-gradient(135deg, #667eea 0%, #a78bfa 50%, #ec4899 100%);
         -webkit-background-clip: text;
@@ -54,40 +55,65 @@ CUSTOM_CSS = """
 
     .app-header p {
         color: #94a3b8;
-        font-size: 13px;
-        margin: 4px 0 0 0;
+        font-size: 12px;
+        margin: 3px 0 0 0;
         font-weight: 400;
     }
 
     /* ============ STATUS BAR ============ */
     .status-bar {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 12px;
-        padding: 10px 20px;
+        background: rgba(22, 33, 62, 0.6);
+        backdrop-filter: blur(12px);
+        border-radius: 10px;
+        padding: 8px 18px;
         display: flex;
         gap: 16px;
         align-items: center;
-        border: 1px solid rgba(102, 126, 234, 0.15);
-        margin-bottom: 16px;
-        font-size: 12px;
+        flex-wrap: wrap;
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        margin-bottom: 12px;
+        font-size: 11px;
+        color: #94a3b8;
     }
 
     .status-dot {
         display: inline-block;
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
-        margin-right: 6px;
+        margin-right: 5px;
         animation: pulse 2s infinite;
     }
 
-    .status-dot.green { background: #48bb78; box-shadow: 0 0 8px rgba(72, 187, 120, 0.5); }
-    .status-dot.yellow { background: #ecc94b; box-shadow: 0 0 8px rgba(236, 201, 75, 0.5); }
-    .status-dot.red { background: #fc8181; box-shadow: 0 0 8px rgba(252, 129, 129, 0.5); }
+    .status-dot.green { background: #48bb78; box-shadow: 0 0 6px rgba(72, 187, 120, 0.5); }
+    .status-dot.yellow { background: #ecc94b; }
+    .status-dot.red { background: #fc8181; box-shadow: 0 0 6px rgba(252, 129, 129, 0.5); }
 
     @keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
+    }
+
+    /* ============ COMPACT METRICS ============ */
+    [data-testid="stMetric"] {
+        background: rgba(26, 26, 46, 0.5);
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        border-radius: 10px;
+        padding: 10px 14px;
+        text-align: center;
+    }
+
+    [data-testid="stMetric"] label {
+        font-size: 11px !important;
+        color: #64748b !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.5px;
+    }
+
+    [data-testid="stMetric"] [data-testid="stMetricValue"] {
+        font-size: 22px !important;
+        font-weight: 800 !important;
+        color: #e2e8f0 !important;
     }
 
     /* ============ SIDEBAR ============ */
@@ -105,108 +131,22 @@ CUSTOM_CSS = """
     }
 
     [data-testid="stSidebar"] hr {
-        border-color: rgba(102, 126, 234, 0.15);
+        border-color: rgba(102, 126, 234, 0.1);
         margin: 12px 0;
     }
 
-    /* ============ METRIC CARDS ============ */
-    .metric-card {
-        border-radius: 14px;
-        padding: 18px 16px;
-        text-align: center;
-        color: white;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .metric-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-    }
-
-    .metric-card::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        border-radius: 14px 14px 0 0;
-    }
-
-    .metric-card.purple {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-    }
-    .metric-card.purple::after { background: linear-gradient(90deg, #667eea, #764ba2); }
-
-    .metric-card.blue {
-        background: linear-gradient(135deg, rgba(66, 153, 225, 0.15) 0%, rgba(56, 178, 172, 0.15) 100%);
-    }
-    .metric-card.blue::after { background: linear-gradient(90deg, #4299e1, #38b2ac); }
-
-    .metric-card.green {
-        background: linear-gradient(135deg, rgba(72, 187, 120, 0.15) 0%, rgba(56, 178, 172, 0.15) 100%);
-    }
-    .metric-card.green::after { background: linear-gradient(90deg, #48bb78, #38b2ac); }
-
-    .metric-card.orange {
-        background: linear-gradient(135deg, rgba(237, 137, 54, 0.15) 0%, rgba(245, 101, 101, 0.15) 100%);
-    }
-    .metric-card.orange::after { background: linear-gradient(90deg, #ed8936, #f56565); }
-
-    .metric-card.pink {
-        background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(167, 139, 250, 0.15) 100%);
-    }
-    .metric-card.pink::after { background: linear-gradient(90deg, #ec4899, #a78bfa); }
-
-    .metric-card.cyan {
-        background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
-    }
-    .metric-card.cyan::after { background: linear-gradient(90deg, #38bdf8, #3b82f6); }
-
-    .metric-card h3 {
-        font-size: 32px;
-        font-weight: 800;
-        margin: 0;
-        line-height: 1.1;
-    }
-
-    .metric-card p {
-        font-size: 11px;
-        margin: 6px 0 0 0;
-        opacity: 0.7;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+    /* ============ BUTTONS ============ */
+    .stButton > button {
+        border-radius: 10px;
         font-weight: 600;
+        font-size: 13px;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(102, 126, 234, 0.15);
     }
 
-    .metric-card .metric-icon {
-        font-size: 20px;
-        margin-bottom: 8px;
-        display: block;
-    }
-
-    /* ============ FILTER BUTTONS ============ */
-    .filter-section {
-        background: rgba(26, 26, 46, 0.6);
-        border-radius: 12px;
-        padding: 12px 16px;
-        border: 1px solid rgba(102, 126, 234, 0.1);
-        margin-bottom: 16px;
-    }
-
-    .filter-indicator {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%);
-        border: 1px solid rgba(102, 126, 234, 0.2);
-        border-radius: 8px;
-        padding: 8px 16px;
-        font-size: 12px;
-        color: #a78bfa;
-        text-align: center;
-        margin-top: 8px;
+    .stButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
     }
 
     /* ============ CHAT MESSAGES ============ */
@@ -218,17 +158,17 @@ CUSTOM_CSS = """
 
     /* ============ SOURCE CARDS ============ */
     .source-card {
-        background: linear-gradient(135deg, rgba(45, 55, 72, 0.6) 0%, rgba(26, 32, 44, 0.6) 100%);
+        background: rgba(45, 55, 72, 0.4);
         border-radius: 10px;
-        padding: 12px 16px;
-        margin: 6px 0;
+        padding: 10px 14px;
+        margin: 5px 0;
         border-left: 3px solid #ed8936;
-        font-size: 13px;
-        transition: border-color 0.2s ease;
+        font-size: 12px;
+        transition: all 0.2s ease;
     }
 
     .source-card:hover {
-        border-left-color: #f6ad55;
+        transform: translateX(2px);
     }
 
     .source-card.type-text { border-left-color: #4299e1; }
@@ -237,36 +177,22 @@ CUSTOM_CSS = """
 
     /* ============ FILE UPLOAD ============ */
     [data-testid="stFileUploader"] {
-        border: 2px dashed rgba(102, 126, 234, 0.3) !important;
+        border: 2px dashed rgba(102, 126, 234, 0.2) !important;
         border-radius: 12px;
         transition: border-color 0.3s ease;
     }
 
     [data-testid="stFileUploader"]:hover {
-        border-color: rgba(102, 126, 234, 0.6) !important;
-    }
-
-    /* ============ UPLOADED FILE BADGE ============ */
-    .file-badge {
-        background: linear-gradient(135deg, rgba(72, 187, 120, 0.1) 0%, rgba(56, 178, 172, 0.1) 100%);
-        border: 1px solid rgba(72, 187, 120, 0.2);
-        border-radius: 8px;
-        padding: 6px 12px;
-        margin: 4px 0;
-        font-size: 12px;
-        color: #48bb78;
-        display: flex;
-        align-items: center;
-        gap: 6px;
+        border-color: rgba(102, 126, 234, 0.45) !important;
     }
 
     /* ============ SYSTEM INFO ============ */
     .sys-info {
-        background: rgba(15, 12, 41, 0.5);
+        background: rgba(15, 12, 41, 0.4);
         border-radius: 8px;
         padding: 10px 14px;
-        border: 1px solid rgba(102, 126, 234, 0.1);
-        font-size: 11px;
+        border: 1px solid rgba(102, 126, 234, 0.08);
+        font-size: 10px;
         color: #64748b;
     }
 
@@ -274,23 +200,9 @@ CUSTOM_CSS = """
         color: #94a3b8;
     }
 
-    /* ============ BUTTONS ============ */
-    .stButton > button {
-        border-radius: 10px;
-        font-weight: 600;
-        font-size: 13px;
-        transition: all 0.2s ease;
-        border: 1px solid rgba(102, 126, 234, 0.2);
-    }
-
-    .stButton > button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
-
     /* ============ EXPANDER ============ */
     .streamlit-expanderHeader {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
         color: #94a3b8;
     }
@@ -301,61 +213,116 @@ CUSTOM_CSS = """
     header {visibility: hidden;}
 
     /* ============ CHAT INPUT ============ */
-    [data-testid="stChatInput"] {
-        border-radius: 12px;
-    }
-
-    [data-testid="stChatInput"] textarea {
-        border-radius: 12px;
-    }
+    [data-testid="stChatInput"] { border-radius: 12px; }
+    [data-testid="stChatInput"] textarea { border-radius: 12px; }
 
     /* ============ SCROLLBAR ============ */
-    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: #0e1117; }
     ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #4a5568; }
 
     /* ============ DIVIDERS ============ */
     hr {
-        border-color: rgba(102, 126, 234, 0.1) !important;
-        margin: 16px 0 !important;
+        border-color: rgba(102, 126, 234, 0.06) !important;
+        margin: 12px 0 !important;
     }
 
-    /* ============ ANIMATION ============ */
+    /* ============ ANIMATIONS ============ */
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(8px); }
+        from { opacity: 0; transform: translateY(6px); }
         to { opacity: 1; transform: translateY(0); }
     }
 
-    .animate-in {
-        animation: fadeIn 0.4s ease-out;
+    .animate-in { animation: fadeIn 0.3s ease-out; }
+
+    /* ============ NOTEBOOK PANEL ============ */
+    .notebook-pdf-item {
+        background: rgba(102, 126, 234, 0.05);
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin: 4px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
     }
 
-    /* ============ PROCESSING OVERLAY ============ */
-    .processing-card {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(167, 139, 250, 0.08) 100%);
-        border: 1px solid rgba(102, 126, 234, 0.2);
-        border-radius: 12px;
-        padding: 16px 20px;
+    .notebook-pdf-item .pdf-name {
+        font-size: 11px;
+        font-weight: 600;
+        color: #e2e8f0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .notebook-pdf-item .pdf-stats {
+        font-size: 9px;
+        color: #64748b;
+        letter-spacing: 0.5px;
+    }
+
+    .notebook-empty {
+        background: rgba(15, 12, 41, 0.2);
+        border: 1px dashed rgba(102, 126, 234, 0.12);
+        border-radius: 10px;
+        padding: 16px;
+        text-align: center;
+        color: #64748b;
+        font-size: 12px;
         margin: 8px 0;
     }
 
-    .processing-card .step {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 4px 0;
-        font-size: 13px;
+    .notebook-info-badge {
+        background: rgba(102, 126, 234, 0.08);
+        border: 1px solid rgba(102, 126, 234, 0.12);
+        border-radius: 10px;
+        padding: 8px 12px;
+        text-align: center;
+        font-size: 11px;
         color: #94a3b8;
     }
 
-    .processing-card .step.active {
+    .notebook-info-badge strong {
         color: #a78bfa;
+        font-size: 12px;
+    }
+
+    /* ============ USER HEADER ============ */
+    .user-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        background: rgba(102, 126, 234, 0.06);
+        border-radius: 6px;
+        font-size: 11px;
+        color: #a78bfa;
+    }
+
+    /* ============ VISIBILITY BADGE ============ */
+    .visibility-badge {
+        display: inline-block;
+        font-size: 9px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        margin-left: 4px;
         font-weight: 600;
     }
 
-    .processing-card .step.done {
+    .visibility-badge.local {
+        background: rgba(236, 201, 75, 0.12);
+        color: #ecc94b;
+    }
+
+    .visibility-badge.group {
+        background: rgba(72, 187, 120, 0.12);
         color: #48bb78;
     }
+
+    /* ============ TABS ============ */
+    .stTabs [data-baseweb="tab-list"] { gap: 6px; }
+    .stTabs [data-baseweb="tab"] { border-radius: 8px; padding: 6px 14px; }
 </style>
 """

@@ -6,6 +6,8 @@ BASE_DIR = Path(__file__).parent.parent
 MODEL_DIR = BASE_DIR / "models"
 DATA_DIR = BASE_DIR / "data"
 VECTORSTORE_DIR = BASE_DIR / "vectorstore" / "chroma_db"
+NOTEBOOKS_DIR = DATA_DIR / "notebooks"
+MESSAGES_DIR = DATA_DIR / "messages"
 
 # ============ MODEL SETTINGS ============
 LLM_MODEL_PATH = MODEL_DIR / "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
@@ -20,13 +22,13 @@ EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_DIMENSION = 384
 
 # ============ CHUNKING SETTINGS ============
-CHUNK_SIZE = 500
-CHUNK_OVERLAP = 200
+CHUNK_SIZE = 1500
+CHUNK_OVERLAP = 300
 SEMANTIC_CHUNK_BREAKPOINT_THRESHOLD = 0.3
 
 # ============ RETRIEVAL SETTINGS ============
 TOP_K_RESULTS = 5
-MMR_DIVERSITY_SCORE = 0.3
+MMR_DIVERSITY_SCORE = 0.7
 MULTI_QUERY_COUNT = 3
 BM25_WEIGHT = 0.3
 VECTOR_WEIGHT = 0.7
@@ -34,6 +36,7 @@ RERANK_TOP_N = 3
 
 # ============ CHROMADB SETTINGS ============
 CHROMA_COLLECTION_NAME = "rag_knowledge_base"
+DEFAULT_NOTEBOOK_NAME = "My Notebook"
 CHROMA_DISTANCE_METRIC = "cosine"
 
 # ============ API KEYS (loaded from .env) ============
@@ -43,7 +46,7 @@ SEARCHAPI_KEY = os.getenv("SEARCHAPI_KEY", "")
 APP_TITLE = "🧠 Local RAG Knowledge Assistant"
 APP_ICON = "🧠"
 MAX_UPLOAD_SIZE_MB = 50
-SUPPORTED_FILE_TYPES = ["pdf"]
+SUPPORTED_FILE_TYPES = ["pdf", "docx", "txt"]
 
 # ============ CONTENT TYPE TAGS ============
 CONTENT_TYPE_TEXT = "text"

@@ -1,192 +1,73 @@
 # 🧠 Local RAG Knowledge Assistant
 
-> **100% local, privacy-first document Q&A with multimodal intelligence.**
+A privacy-first, 100% local, multi-modal Retrieval-Augmented Generation (RAG) assistant built using LangChain, Streamlit, and ChromaDB. This project allows users to chat with their documents (PDF, DOCX, TXT), images, and tables securely using local Language Models (via Ollama) or hosted APIs (HuggingFace Llama 3).
 
-A powerful Retrieval-Augmented Generation (RAG) system that processes PDF documents containing text, images, and tables — and lets you ask questions in a beautiful Streamlit dashboard.
+## ✨ Key Features
+- **Multi-Modal Document Processing:** Extracts not just text, but images and tables from PDFs.
+- **Advanced Image Understanding:** Automatically routes complex charts and diagrams through **Google AI Mode** (SearchApi) to describe logic flow and relationships, enabling the system to "read" images.
+- **Adaptive Text Chunking:** Intelligently chunks text by page and structure to prevent context tearing (e.g., separating titles from bullet points).
+- **Notebook Isolation:** Create multiple distinct workspaces (notebooks). Changing your notebook changes the vector database context, keeping your projects separate.
+- **Guardrails & Autocorrect:** Domain-aware query autocorrection and semantic guardrails to reject off-topic questions.
+- **Source Citations:** Generates exact source references and metadata for where information was dynamically retrieved.
+- **Responsive Streamlit Dashboard:** Dual-panel UI with live metrics and interactive chat.
 
----
-
-## ✨ Features
-
-| Feature | Description |
-|---------|-------------|
-| 📄 **Multimodal PDF Processing** | Extracts text, images, and tables separately |
-| 🔍 **Hybrid Search** | Combines vector similarity (MMR) + BM25 keyword search |
-| 🔄 **Re-ranking** | Cross-encoder model re-scores results for precision |
-| 🧠 **Local LLM** | TinyLlama-1.1B in GGUF Q4 format (~800MB RAM) |
-| 🖼️ **Image Processing** | Google Lens API + pytesseract OCR fallback |
-| 📊 **Table Intelligence** | Google AI Mode API + markdown conversion |
-| 🎯 **Content Filtering** | Query text-only, image-only, or table-only content |
-| 💬 **Conversation Memory** | Multi-turn chat with context awareness |
-| 🎨 **Premium Dark UI** | Gradient cards, animations, glassmorphism styling |
-
----
+## 🛠️ Tech Stack
+- **Framework:** [LangChain](https://python.langchain.com/)
+- **UI:** [Streamlit](https://streamlit.io/)
+- **Vector Store:** [ChromaDB](https://www.trychroma.com/)
+- **Embeddings:** HuggingFace `sentence-transformers/all-MiniLM-L6-v2`
+- **LLM Engine:** Local **Ollama** (e.g. `qwen2.5:3b`, `llama3`) or HuggingFace API.
+- **Document Parsing:** PyMuPDF, pdfplumber, python-docx
+- **OCR/Vision:** SearchApi (Google AI Mode), pytesseract, easyocr.
 
 ## 🚀 Quick Start
 
-### 1. Clone & Setup
+### 1. Prerequisites
+- Python 3.9+
+- [Ollama](https://ollama.com/) installed and running locally.
+- *Optional:* Tesseract OCR installed on your system.
 
+### 2. Installation
+Clone the repository and install the dependencies:
 ```bash
-# Create virtual environment
-python -m venv venv
-venv\Scripts\activate          # Windows
-# source venv/bin/activate     # Linux/Mac
-
-# Install dependencies
+git clone https://github.com/Z3phyru5646/QnA-Assistant-from-scratch-using-Langchain.git
+cd QnA-Assistant-from-scratch-using-Langchain
 pip install -r requirements.txt
 ```
 
-### 2. Download TinyLlama Model
+### 3. Environment Variables
+Create a `.env` file in the root directory:
+```env
+# Optional: for HuggingFace models
+HF_TOKEN=your_huggingface_token
 
-Download the GGUF model file and place it in the `models/` folder:
-
-```
-models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf
-```
-
-**Download:** [TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF](https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF)
-
-### 3. Create Directories
-
-```bash
-mkdir -p data/uploaded_pdfs data/extracted_images data/extracted_tables data/processed_texts
-mkdir -p vectorstore/chroma_db models
+# Optional: for Google AI Image parsing of complex flowcharts
+SEARCHAPI_KEY=your_searchapi_key
 ```
 
-### 4. Run the App
-
+### 4. Running the App
 ```bash
 streamlit run app.py
 ```
 
----
-
-## 🏗️ Architecture
-
+### 5. Managing Models
+To use local models, ensure you have pulled them using Ollama in your terminal:
+```bash
+ollama pull qwen2.5:3b
 ```
-USER UPLOADS PDF
-       │
-       ▼
-┌─────────────────────────┐
-│    PDF PROCESSOR         │
-│  (PyMuPDF + pdfplumber) │
-└─────┬───────┬───────┬───┘
-      │       │       │
-      ▼       ▼       ▼
-   TEXT    IMAGES   TABLES
-      │       │       │
-      ▼       ▼       ▼
-  Recursive  Google   Google
-  + Semantic  Lens    AI Mode
-  Chunking    API      API
-      │       │       │
-      └───────┼───────┘
-              │
-              ▼
-    ┌─────────────────┐
-    │  all-MiniLM-L6-v2│  ← Embedding (384d)
-    └────────┬────────┘
-             │
-             ▼
-    ┌─────────────────┐
-    │    ChromaDB      │  ← Vector Store (HNSW + cosine)
-    └────────┬────────┘
-             │
-    USER ASKS QUESTION
-             │
-             ▼
-    ┌─────────────────────┐
-    │ ADVANCED RETRIEVER   │
-    │ • Hybrid: Vec + BM25│
-    │ • MMR diversity     │
-    │ • Cross-Encoder     │
-    │ • Content filter    │
-    └────────┬────────────┘
-             │
-             ▼
-    ┌─────────────────┐
-    │ TinyLlama-1.1B  │  ← Local LLM (Q4, CPU)
-    └────────┬────────┘
-             │
-             ▼
-    ┌─────────────────┐
-    │ ANSWER + SOURCES│  → Streamlit UI
-    └─────────────────┘
+Select the corresponding model in the sidebar dropdown in the UI.
+
+## 📂 Project Structure
+```text
+📦 GenAI_Project
+ ┣ 📂 core               # Core backend modules (Pipelines, LLM, Memory, VectorDB)
+ ┣ 📂 config             # Settings and internationalization (i18n)
+ ┣ 📂 data               # Persistent vector database and extracted files
+ ┣ 📂 ui                 # Streamlit UI components (Chat, Sidebar, Dashboards)
+ ┣ 📂 utils              # Helper functions, formatters, sanitizers
+ ┣ 📜 app.py             # Main entry point for the Streamlit dashboard
+ ┗ 📜 requirements.txt   # Python dependencies
 ```
-
----
-
-## 📁 Project Structure
-
-```
-offline-rag-assistant/
-├── app.py                     # Main Streamlit application
-├── requirements.txt           # Python dependencies
-├── .env                       # API keys (SearchAPI)
-├── .streamlit/config.toml     # Streamlit theme config
-│
-├── config/
-│   └── settings.py            # All configurable parameters
-│
-├── core/
-│   ├── pdf_processor.py       # PDF → text, images, tables
-│   ├── text_pipeline.py       # Text chunking (recursive + semantic)
-│   ├── image_pipeline.py      # Image → text via OCR/Lens API
-│   ├── table_pipeline.py      # Table → text via markdown/AI Mode
-│   ├── embedding_manager.py   # HuggingFace embedding model
-│   ├── vectorstore_manager.py # ChromaDB operations
-│   ├── retriever.py           # Hybrid search + re-ranking
-│   ├── llm_manager.py         # TinyLlama GGUF loading
-│   ├── rag_chain.py           # LangChain LCEL RAG pipeline
-│   └── memory_manager.py      # Conversation buffer memory
-│
-├── ui/
-│   ├── styles.py              # Custom CSS (dark theme)
-│   ├── sidebar.py             # File upload + settings
-│   ├── chat_interface.py      # Chat messages + input
-│   ├── dashboard_metrics.py   # Metric cards
-│   └── filter_buttons.py      # Content type filter
-│
-├── utils/
-│   ├── google_lens_api.py     # SearchAPI Google Lens wrapper
-│   ├── google_ai_mode_api.py  # SearchAPI AI Mode wrapper
-│   └── helpers.py             # Utility functions
-│
-├── models/                    # GGUF model file
-├── data/                      # Extracted content
-└── vectorstore/               # ChromaDB persistent storage
-```
-
----
-
-## 🔑 API Keys
-
-The `.env` file contains the SearchAPI key for Google Lens and AI Mode:
-
-```
-SEARCHAPI_KEY=your_key_here
-```
-
-These APIs are **optional** — the system works fully offline with pytesseract OCR and direct table conversion.
-
----
-
-## ⚙️ Configuration
-
-All parameters are in `config/settings.py`:
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `CHUNK_SIZE` | 500 | Characters per text chunk |
-| `CHUNK_OVERLAP` | 200 | Overlap between chunks |
-| `TOP_K_RESULTS` | 5 | Documents to retrieve |
-| `LLM_TEMPERATURE` | 0.3 | Generation temperature |
-| `MMR_DIVERSITY_SCORE` | 0.3 | Diversity vs relevance balance |
-| `BM25_WEIGHT` | 0.3 | Keyword search weight |
-| `VECTOR_WEIGHT` | 0.7 | Semantic search weight |
-
----
 
 ## 📝 License
-
-MIT License — Free for personal and commercial use.
+This project is open-source and available under the MIT License.

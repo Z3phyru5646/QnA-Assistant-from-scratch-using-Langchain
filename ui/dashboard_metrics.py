@@ -1,5 +1,5 @@
 """
-Dashboard Metrics — Gradient metric cards showing knowledge base stats.
+Dashboard Metrics — Compact inline stats using native Streamlit columns.
 """
 
 import streamlit as st
@@ -7,59 +7,18 @@ import streamlit as st
 
 def render_metrics(stats):
     """
-    Render dashboard metric cards.
-
-    Args:
-        stats: dict with keys like total_chunks, text_chunks, image_chunks,
-               table_chunks, total_files, ram_usage_mb
+    Render dashboard metrics as a compact single row using st.columns.
     """
-    cols = st.columns(6)
-
-    cards = [
-        {
-            "icon": "📦",
-            "value": stats.get("total_chunks", 0),
-            "label": "Total Chunks",
-            "color": "purple",
-        },
-        {
-            "icon": "📄",
-            "value": stats.get("text_chunks", 0),
-            "label": "Text Chunks",
-            "color": "blue",
-        },
-        {
-            "icon": "🖼️",
-            "value": stats.get("image_chunks", 0),
-            "label": "Image Chunks",
-            "color": "green",
-        },
-        {
-            "icon": "📊",
-            "value": stats.get("table_chunks", 0),
-            "label": "Table Chunks",
-            "color": "orange",
-        },
-        {
-            "icon": "📚",
-            "value": stats.get("total_files", 0),
-            "label": "PDF Files",
-            "color": "pink",
-        },
-        {
-            "icon": "🧠",
-            "value": stats.get("ram_usage_mb", 0),
-            "label": "RAM (MB)",
-            "color": "cyan",
-        },
+    chips = [
+        ("📦", stats.get("total_chunks", 0), "Chunks"),
+        ("📄", stats.get("text_chunks", 0), "Text"),
+        ("🖼️", stats.get("image_chunks", 0), "Images"),
+        ("📊", stats.get("table_chunks", 0), "Tables"),
+        ("📚", stats.get("total_files", 0), "Docs"),
+        ("🧠", stats.get("ram_usage_mb", 0), "RAM MB"),
     ]
 
-    for col, card in zip(cols, cards):
+    cols = st.columns(len(chips))
+    for col, (icon, value, label) in zip(cols, chips):
         with col:
-            st.markdown(f"""
-            <div class="metric-card {card['color']} animate-in">
-                <span class="metric-icon">{card['icon']}</span>
-                <h3>{card['value']}</h3>
-                <p>{card['label']}</p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.metric(label=f"{icon} {label}", value=value)

@@ -46,20 +46,11 @@ class PDFProcessor:
         image_paths = []
         table_data = []
 
-        # --- Extract text and images with PyMuPDF ---
+        # --- Extract images with PyMuPDF ---
         try:
             doc = fitz.open(str(pdf_path))
             for page_num in range(len(doc)):
                 page = doc[page_num]
-
-                # Extract text
-                page_text = page.get_text("text")
-                if page_text and page_text.strip():
-                    text_blocks.append({
-                        "text": page_text.strip(),
-                        "page": page_num + 1,
-                        "source": source_name,
-                    })
 
                 # Extract images
                 image_list = page.get_images(full=True)
@@ -89,10 +80,25 @@ class PDFProcessor:
         except Exception as e:
             logger.error(f"PyMuPDF extraction failed: {e}")
 
-        # --- Extract tables with pdfplumber ---
+        # --- Extract text and tables with pdfplumber ---
+        full_text_dump = []
         try:
             with pdfplumber.open(str(pdf_path)) as pdf:
                 for page_num, page in enumerate(pdf.pages):
+                    # --- Extract text ---
+                    try:
+                        page_text = page.extract_text()
+                        if page_text and page_text.strip():
+                            text_blocks.append({
+                                "text": page_text.strip(),
+                                "page": page_num + 1,
+                                "source": source_name,
+                            })
+                            full_text_dump.append(f"--- Page {page_num + 1} ---\n{page_text.strip()}\n")
+                    except Exception as e:
+                        logger.warning(f"Failed to extract text on page {page_num+1}: {e}")
+
+                    # --- Extract tables ---
                     tables = page.extract_tables()
                     for tbl_idx, table in enumerate(tables):
                         if table and len(table) > 1:
@@ -123,6 +129,16 @@ class PDFProcessor:
                                 logger.warning(f"Failed to process table {tbl_idx} on page {page_num+1}: {e}")
         except Exception as e:
             logger.error(f"pdfplumber table extraction failed: {e}")
+
+        # --- Save extracted text to .txt ---
+        if full_text_dump:
+            try:
+                txt_save_path = self.texts_dir / f"{pdf_path.stem}.txt"
+                with open(txt_save_path, "w", encoding="utf-8") as f:
+                    f.write("\n".join(full_text_dump))
+                logger.info(f"Saved extracted text to {txt_save_path}")
+            except Exception as e:
+                logger.warning(f"Failed to save extracted text to .txt: {e}")
 
         logger.info(
             f"Extraction complete — Text: {len(text_blocks)} pages, "

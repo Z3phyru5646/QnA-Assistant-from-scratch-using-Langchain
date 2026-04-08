@@ -1,0 +1,545 @@
+# 🧠 RAG Knowledge Assistant — Feature Enhancement Plan
+
+Complete implementation plan for 12 new features + UI overhaul. All features will be visible in the Streamlit dashboard.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Multi-user Authentication (Feature 11/12):** This introduces SQLite-based user/password storage and group visibility. Confirm if you want a simple login gate (username + password) or a full registration flow. Current plan assumes: **simple login + registration page with SQLite**.
+
+> [!WARNING]
+> **Live Translation (Feature 7):** This requires either (a) a free translation API (Google Translate via `googletrans` library — free but rate-limited) or (b) using the LLM itself for translation (slower, uses inference tokens). Current plan uses `googletrans` for speed. Confirm if acceptable.
+
+> [!IMPORTANT]
+> **Query Autocorrect (Feature 1):** Will use `autocorrect` Python library (offline, lightweight) + `textblob` as fallback. No API call needed. Confirm if this is acceptable vs. a heavier NLP model.
+
+---
+
+## Proposed Changes
+
+### Feature 1: Query Autocorrect
+
+Auto-correct typos in user queries before sending to RAG pipeline. Shows the corrected query to the user with a "Did you mean?" prompt.
+
+#### [NEW] [autocorrect_engine.py](file:///b:/GenAI_Project/core/autocorrect_engine.py)
+
+```python
+# Uses `autocorrect` library (offline, fast)
+# Pipeline: raw query → spell check → show diff if changed → use corrected
+# - Skips correction for technical terms found in uploaded docs (learns domain vocab)
+# - User can dismiss correction and use original query
+```
+
+**Implementation:**
+- `AutocorrectEngine` class with `correct(query) → (corrected, was_changed)` method
+- Domain vocabulary learning: extract unique words from uploaded documents and add to spellchecker's known words
+- Integrates before `handle_query()` in `app.py`
+
+#### [MODIFY] [app.py](file:///b:/GenAI_Project/app.py)
+- In the user input handling block (~line 597-619), add autocorrect step before `handle_query()`
+- Show a "Did you mean: **corrected query**?" info bar with Accept/Ignore buttons
+- If accepted, use corrected query; if ignored, use original
+
+#### [MODIFY] [chat_interface.py](file:///b:/GenAI_Project/ui/chat_interface.py)
+- Add visual indicator for auto-corrected queries (strikethrough original + green corrected text)
+
+**New dependency:** `autocorrect>=2.6.1`
+
+---
+
+### Feature 2: PDF, DOCX, and TXT File Upload
+
+Extend file upload to support `.docx` and `.txt` in addition to `.pdf`.
+
+#### [NEW] [docx_processor.py](file:///b:/GenAI_Project/core/docx_processor.py)
+
+```python
+# Uses python-docx to extract:
+# - Text paragraphs with page-level grouping
+# - Embedded images
+# - Tables (converted to markdown)
+# Returns same format as PDFProcessor: (text_blocks, image_paths, table_data)
+```
+
+#### [NEW] [txt_processor.py](file:///b:/GenAI_Project/core/txt_processor.py)
+
+```python
+# Simple text file reader
+# - Reads .txt with UTF-8 encoding (fallback to latin-1)
+# - Splits by paragraph boundaries
+# - Returns text_blocks only (no images/tables)
+```
+
+#### [MODIFY] [sidebar.py](file:///b:/GenAI_Project/ui/sidebar.py)
+- Change `type=["pdf"]` → `type=["pdf", "docx", "txt"]` in `st.file_uploader()`
+- Update label: "Upload PDFs to Notebook" → "Upload Documents"
+
+#### [MODIFY] [app.py](file:///b:/GenAI_Project/app.py)
+- In `process_uploaded_file()`, detect file extension and route to appropriate processor:
+  - `.pdf` → `PDFProcessor`
+  - `.docx` → `DocxProcessor`
+  - `.txt` → `TxtProcessor`
+- Update save directory logic to handle all file types
+
+#### [MODIFY] [settings.py](file:///b:/GenAI_Project/config/settings.py)
+- `SUPPORTED_FILE_TYPES = ["pdf", "docx", "txt"]`
+
+**New dependency:** `python-docx>=0.8.11`
+
+---
+
+### Feature 3: Toggle Button for RAG Settings — Adaptive Chunking
+
+Add a toggle that switches between manual chunk size control and automatic adaptive chunking based on document content.
+
+#### [MODIFY] [sidebar.py](file:///b:/GenAI_Project/ui/sidebar.py)
+- Add `st.toggle("🧬 Adaptive Chunking")` above the chunk size sliders
+- When enabled: hide manual chunk_size/overlap sliders, show info about adaptive mode
+- When disabled: show manual sliders as before
+- Return `adaptive_chunking: bool` in settings dict
+
+#### [MODIFY] [text_pipeline.py](file:///b:/GenAI_Project/core/text_pipeline.py)
+- Add `adaptive_chunk()` method that:
+  - Analyzes document density (words per page) to choose chunk size
+  - Short dense docs → smaller chunks (300 chars)
+  - Long narrative docs → larger chunks (800 chars)
+  - Technical docs with headers → split on headers first, then by size
+  - Uses regex to detect headers/sections and split semantically
+
+#### [MODIFY] [app.py](file:///b:/GenAI_Project/app.py)
+- Pass `adaptive_chunking` flag to `text_pipeline.process()`
+- When adaptive, skip manual chunk_size/overlap params
+
+---
+
+### Feature 4: Dual Panel UI — Response Panel + Citations Panel
+
+Split the main area into two panels: left for clean AI responses, right for sources/citations.
+
+#### [NEW] [citation_panel.py](file:///b:/GenAI_Project/ui/citation_panel.py)
+
+```python
+# Right-side panel showing:
+# - Source documents with file name, page, content type
+# - Relevance score (from re-ranker)
+# - Preview of source content
+# - Click to expand full source text
+# Linked to the active message — clicking a response highlights its sources
+```
+
+#### [MODIFY] [chat_interface.py](file:///b:/GenAI_Project/ui/chat_interface.py)
+- Remove inline source expanders from chat messages
+- Chat messages show ONLY the response text (clean, uncluttered)
+- Add a "📎 Sources" pill/badge next to each assistant message showing count
+
+#### [MODIFY] [app.py](file:///b:/GenAI_Project/app.py)
+- Use `st.columns([2, 1])` to create a 2:1 split layout:
+  - Left (wider): Chat interface with clean responses
+  - Right (narrower): Citation panel showing sources for the selected/latest message
+- Store `selected_message_idx` in session state for source highlighting
+
+#### [MODIFY] [styles.py](file:///b:/GenAI_Project/ui/styles.py)
+- Add CSS for the citation panel: `.citation-panel`, `.citation-card`, `.citation-highlight`
+- Animated slide-in for citation cards when a message is selected
+
+---
+
+### Feature 5: System Resource Usage Monitor
+
+Show live CPU, RAM, disk, and GPU (if available) usage in the dashboard.
+
+#### [NEW] [system_monitor.py](file:///b:/GenAI_Project/ui/system_monitor.py)
+
+```python
+# Uses psutil (already installed) + GPUtil (optional)
+# Shows: CPU %, RAM used/total, Disk used/total, GPU usage (if NVIDIA)
+# Rendered as progress bars with color coding:
+#   green < 50%, yellow 50-80%, red > 80%
+# Auto-refreshes every 5 seconds using st.empty() placeholder
+```
+
+**Implementation:**
+- `render_system_monitor()` function
+- Uses `psutil.cpu_percent()`, `psutil.virtual_memory()`, `psutil.disk_usage()`
+- Optional `GPUtil` for NVIDIA GPU stats
+- Rendered in an expander in the sidebar labeled "📊 System Resources"
+
+#### [MODIFY] [sidebar.py](file:///b:/GenAI_Project/ui/sidebar.py)
+- Add system monitor section at the bottom of sidebar (replace/enhance current static "System" section)
+
+#### [MODIFY] [styles.py](file:///b:/GenAI_Project/ui/styles.py)
+- Add CSS for resource bars: `.resource-bar`, `.resource-bar-fill`, color classes
+
+**New dependency:** `GPUtil>=1.4.0` (optional, for GPU monitoring)
+
+---
+
+### Feature 6: Guardrails for Restricting Query Scope
+
+Restrict queries to only answer from uploaded document content. Block off-topic, harmful, or out-of-scope questions.
+
+#### [NEW] [guardrails.py](file:///b:/GenAI_Project/core/guardrails.py)
+
+```python
+# Three-layer guardrail system:
+#
+# Layer 1: TOPIC FILTER — Check if query is related to uploaded documents
+#   - Embed the query, check cosine similarity against document embeddings
+#   - If max similarity < threshold (0.2), reject as off-topic
+#
+# Layer 2: CONTENT SAFETY — Block harmful/inappropriate queries
+#   - Keyword blocklist for harmful content categories
+#   - Pattern matching for injection attempts ("ignore previous instructions")
+#
+# Layer 3: SCOPE ENFORCEMENT — Prevent the LLM from answering beyond docs
+#   - Enhanced system prompt that strictly limits to document context
+#   - Post-generation check: flag responses that say "based on my knowledge"
+#
+# Returns: (is_allowed, rejection_reason)
+```
+
+#### [MODIFY] [app.py](file:///b:/GenAI_Project/app.py)
+- Add guardrail check before `handle_query()`:
+  ```python
+  guardrail = Guardrail(system["embeddings"], system["vs_manager"])
+  is_allowed, reason = guardrail.check(query)
+  if not is_allowed:
+      add_message("assistant", f"🛡️ {reason}")
+  ```
+
+#### [MODIFY] [rag_chain.py](file:///b:/GenAI_Project/core/rag_chain.py)
+- Strengthen `RAG_SYSTEM_PROMPT` to reinforce scope restrictions
+- Add post-generation guardrail check
+
+#### [MODIFY] [sidebar.py](file:///b:/GenAI_Project/ui/sidebar.py)
+- Add toggle: `st.toggle("🛡️ Guardrails", value=True)` in RAG Settings section
+- When disabled, skip guardrail checks (power-user mode)
+
+---
+
+### Feature 7: Live Translation for UI
+
+Translate the entire UI interface into different languages at runtime.
+
+#### [NEW] [translation.py](file:///b:/GenAI_Project/core/translation.py)
+
+```python
+# Translation engine using `googletrans` (free, offline-capable)
+# Supported languages: English, Hindi, Spanish, French, German, Chinese, Japanese, etc.
+#
+# Translates:
+# - All static UI strings (labels, buttons, placeholders)
+# - AI responses (on-demand)
+# - Does NOT translate document content or source citations
+#
+# Uses a dictionary-based approach for UI strings with translation cache
+```
+
+#### [NEW] [translations.py](file:///b:/GenAI_Project/config/translations.py)
+
+```python
+# Static translation dictionary for all UI strings
+# Format: { "en": {"upload_docs": "Upload Documents", ...}, "hi": {...}, ... }
+# Covers: all sidebar labels, button texts, status messages, headers
+# Supports: English, Hindi, Spanish, French, German, Chinese, Japanese, Arabic
+```
+
+#### [MODIFY] [sidebar.py](file:///b:/GenAI_Project/ui/sidebar.py)
+- Add language selector dropdown at the top of sidebar (below logo)
+- `st.selectbox("🌐 Language", ["English", "हिंदी", "Español", "Français", ...])`
+- Store in `st.session_state.ui_language`
+
+#### [MODIFY] All UI files
+- Replace hardcoded strings with `t("key")` function calls that look up translations
+- `t()` function checks `st.session_state.ui_language` and returns appropriate string
+
+---
+
+### Feature 8: UI Overhaul — Less Congested, More Open Layout
+
+Complete redesign to make the dashboard feel spacious, modern, and breathable.
+
+#### [MODIFY] [styles.py](file:///b:/GenAI_Project/ui/styles.py)
+
+Major CSS changes:
+- **Increase spacing**: `padding`, `margin`, `gap` values increased throughout
+- **Max-width**: Expand from 1400px to 1600px
+- **Metric cards**: Switch from 6-column to 3-column grid (2 rows of 3), larger card sizes
+- **Header**: More padding, larger fonts, more breathing room
+- **Status bar**: Reduced visual weight, simpler layout
+- **Chat messages**: More padding, larger text, better readability
+- **Sidebar**: Better section spacing, collapsible sections with `st.expander()`
+- **Filter buttons**: Pill-style with better spacing instead of cramped row
+- **Remove visual clutter**: Reduce borders, simplify backgrounds
+- **Add section headers with proper spacing** between major content areas
+- **Glassmorphism effects**: Frosted glass backgrounds for panels
+
+#### [MODIFY] [dashboard_metrics.py](file:///b:/GenAI_Project/ui/dashboard_metrics.py)
+- Switch from 6 columns to a 3-column layout with larger, more informative cards
+- Add mini sparkline/trend indicators
+- Group related metrics (Document metrics row + System metrics row)
+
+#### [MODIFY] [filter_buttons.py](file:///b:/GenAI_Project/ui/filter_buttons.py)
+- Convert to horizontal pill-style tabs instead of full-width buttons
+- Less visual dominance, more elegant
+
+#### [MODIFY] [sidebar.py](file:///b:/GenAI_Project/ui/sidebar.py)
+- Group settings into collapsible `st.expander()` sections
+- Move RAG settings into an expander (default collapsed)
+- Show only essential controls by default
+
+#### [MODIFY] [app.py](file:///b:/GenAI_Project/app.py)
+- Remove the multiple `st.markdown("---")` dividers (they add to congested feeling)
+- Replace with styled section headers with proper spacing
+- Remove the heavy status bar and integrate status into the header
+
+---
+
+### Feature 9: Fix Summarize Button
+
+The summarize buttons in the sidebar currently may not work if LLM is not loaded or if the collection is empty.
+
+#### [MODIFY] [app.py](file:///b:/GenAI_Project/app.py)
+- In `handle_summarization()`: add better error handling
+  - Check if LLM is loaded before attempting
+  - Check if documents exist for the requested type
+  - Show specific error messages instead of generic failures
+
+#### [MODIFY] [notebook_panel.py](file:///b:/GenAI_Project/ui/notebook_panel.py)
+- Disable summarize buttons when:
+  - LLM is not loaded (gray them out with tooltip)
+  - No documents of that type exist (show count on button: "📄 Text (5)")
+- Add loading spinner feedback
+
+#### [MODIFY] [summarizer.py](file:///b:/GenAI_Project/core/summarizer.py)
+- Add retry logic for LLM failures
+- Better content truncation that preserves complete sentences
+- Add a fallback extractive summary using TextRank if LLM is unavailable
+
+---
+
+### Feature 10: Suggested Follow-up Questions
+
+After each query response, show 3 related follow-up questions the user could ask.
+
+#### [NEW] [question_suggester.py](file:///b:/GenAI_Project/core/question_suggester.py)
+
+```python
+# Two strategies:
+#
+# Strategy 1 (LLM-powered): Ask the LLM to generate 3 follow-up questions
+#   based on the current answer + context
+#   Prompt: "Based on this answer and context, suggest 3 follow-up questions..."
+#
+# Strategy 2 (Fallback, no-LLM): Extract key entities/topics from the answer
+#   and generate template questions like:
+#   - "Tell me more about [entity]"
+#   - "What are the details of [topic]?"
+#   - "How does [concept] relate to [other concept]?"
+#
+# Returns: list of 3 question strings
+```
+
+#### [MODIFY] [chat_interface.py](file:///b:/GenAI_Project/ui/chat_interface.py)
+- After the last assistant message, render 3 clickable suggestion pills
+- Use `st.button()` styled as pills in a horizontal row
+- Clicking a suggestion fills it as the next query
+
+#### [MODIFY] [app.py](file:///b:/GenAI_Project/app.py)
+- After `handle_query()` returns, generate suggestions and store in session state
+- Handle suggestion button clicks as new queries
+
+#### [MODIFY] [styles.py](file:///b:/GenAI_Project/ui/styles.py)
+- Add CSS for suggestion pills: `.suggestion-pill` with hover effects
+
+---
+
+### Feature 11: Password + Name for Localhost Instance (Multi-User)
+
+Add authentication so multiple users can log in and access shared/separate notebooks.
+
+#### [NEW] [auth_manager.py](file:///b:/GenAI_Project/core/auth_manager.py)
+
+```python
+# SQLite-based user management:
+# - Table: users(id, username, password_hash, display_name, created_at)
+# - Password hashing with bcrypt
+# - Login / Register / Logout methods
+# - Session token management via st.session_state
+#
+# Database stored at: data/users.db
+```
+
+#### [NEW] [login_page.py](file:///b:/GenAI_Project/ui/login_page.py)
+
+```python
+# Full-page login/register UI:
+# - Tab 1: Login (username + password)
+# - Tab 2: Register (username + display name + password + confirm password)
+# - Styled with the same dark theme
+# - Replaces main UI when not authenticated
+# - Shows error messages for invalid credentials
+# - "Remember me" option using browser cookies
+```
+
+#### [MODIFY] [app.py](file:///b:/GenAI_Project/app.py)
+- Add authentication gate at the start of `main()`:
+  ```python
+  if not st.session_state.get("authenticated"):
+      render_login_page()
+      return
+  ```
+- Pass `user_id` to notebook manager for ownership
+- Show logged-in user name in sidebar/header
+- Add logout button
+
+#### [MODIFY] [notebook_manager.py](file:///b:/GenAI_Project/core/notebook_manager.py)
+- Add `owner_id` field to notebook metadata
+- Add `shared_with` field (list of user IDs for group access)
+- Filter `list_notebooks()` by owner + shared_with
+- Add `share_notebook(notebook_id, user_id)` method
+
+**New dependencies:** `bcrypt>=4.0.0`
+
+---
+
+### Feature 12: Group Query Visibility and Local Query
+
+Toggle between group-visible queries (all users in a shared notebook see the chat) and local/private queries.
+
+#### [NEW] [query_visibility.py](file:///b:/GenAI_Project/core/query_visibility.py)
+
+```python
+# Manages query/message visibility:
+# - Each message has a `visibility` field: "local" or "group"
+# - "local" messages are only visible to the sender
+# - "group" messages are visible to all users with access to the notebook
+#
+# Storage: SQLite table messages(id, notebook_id, user_id, role, content,
+#          sources_json, visibility, timestamp)
+#
+# On chat render: filter messages by visibility + user_id
+```
+
+#### [MODIFY] [chat_interface.py](file:///b:/GenAI_Project/ui/chat_interface.py)
+- Add a toggle above the chat input: `🔒 Private` / `👥 Group`
+- Private queries only show in the sender's view
+- Group queries appear for all users in the shared notebook
+- Visual indicator on each message: 🔒 or 👥 badge
+
+#### [MODIFY] [app.py](file:///b:/GenAI_Project/app.py)
+- When saving messages, include `visibility` and `user_id` fields
+- When loading notebook messages, filter by visibility rules
+- Persist messages to SQLite instead of just session state (for cross-user sharing)
+
+---
+
+## New File Summary
+
+| # | File | Purpose |
+|---|------|---------|
+| 1 | `core/autocorrect_engine.py` | Query spell-check with domain vocabulary |
+| 2 | `core/docx_processor.py` | DOCX file processing pipeline |
+| 3 | `core/txt_processor.py` | TXT file processing pipeline |
+| 4 | `ui/citation_panel.py` | Right-side sources/citations panel |
+| 5 | `ui/system_monitor.py` | Live CPU/RAM/Disk/GPU metrics |
+| 6 | `core/guardrails.py` | Query scope + safety filter |
+| 7 | `core/translation.py` | Translation engine |
+| 8 | `config/translations.py` | UI string translations dictionary |
+| 9 | `core/question_suggester.py` | Follow-up question generator |
+| 10 | `core/auth_manager.py` | SQLite user authentication |
+| 11 | `ui/login_page.py` | Login/Register page |
+| 12 | `core/query_visibility.py` | Group vs local message visibility |
+
+## Modified File Summary
+
+| File | Features Affected |
+|------|------------------|
+| `app.py` | 1, 2, 3, 4, 6, 8, 9, 10, 11, 12 |
+| `ui/sidebar.py` | 2, 3, 5, 6, 7, 8 |
+| `ui/chat_interface.py` | 1, 4, 10, 12 |
+| `ui/styles.py` | 4, 5, 8, 10 |
+| `ui/dashboard_metrics.py` | 8 |
+| `ui/filter_buttons.py` | 8 |
+| `ui/notebook_panel.py` | 9 |
+| `core/text_pipeline.py` | 3 |
+| `core/rag_chain.py` | 6 |
+| `core/summarizer.py` | 9 |
+| `core/notebook_manager.py` | 11 |
+| `config/settings.py` | 2 |
+| `requirements.txt` | 1, 2, 5, 7, 11 |
+
+---
+
+## New Dependencies
+
+```
+# Feature 1: Query Autocorrect
+autocorrect>=2.6.1
+
+# Feature 2: DOCX support
+python-docx>=0.8.11
+
+# Feature 5: GPU monitoring (optional)
+GPUtil>=1.4.0
+
+# Feature 7: Translation
+googletrans==4.0.0-rc.1
+
+# Feature 11: Password hashing
+bcrypt>=4.0.0
+```
+
+---
+
+## Implementation Order
+
+Recommended execution order (dependencies-first):
+
+1. **Phase 1 — Foundation**: Feature 8 (UI overhaul) — this changes the layout that all other features plug into
+2. **Phase 2 — Core Fixes**: Feature 9 (fix summarize) + Feature 2 (multi-format upload)
+3. **Phase 3 — RAG Enhancements**: Feature 1 (autocorrect) + Feature 3 (adaptive chunking) + Feature 6 (guardrails)
+4. **Phase 4 — UX Improvements**: Feature 4 (dual panel) + Feature 10 (suggested questions) + Feature 5 (system monitor)
+5. **Phase 5 — Internationalization**: Feature 7 (live translation)
+6. **Phase 6 — Multi-User**: Feature 11 (auth) + Feature 12 (query visibility) — these depend on each other
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> 1. **Translation API:** Should we use `googletrans` (free, offline) or the HuggingFace LLM for translation? `googletrans` is faster but may have rate limits for large texts.
+
+> [!IMPORTANT]
+> 2. **Multi-user scope:** Should the login system support:
+>    - (A) Simple: Just username + password, notebooks fully private per user
+>    - (B) Full: Username + password + ability to share notebooks with specific users + group chat visibility
+>    - Current plan assumes option B.
+
+> [!IMPORTANT]
+> 3. **Guardrail strictness:** How strict should the query scope guardrail be?
+>    - (A) Loose: Only block clearly harmful/off-topic queries
+>    - (B) Strict: Only allow questions directly answerable from uploaded documents
+>    - Current plan defaults to B with a toggle to switch off.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+1. Run `streamlit run app.py` and verify all pages load without errors
+2. Test file upload for each format: `.pdf`, `.docx`, `.txt`
+3. Test autocorrect with intentional typos
+4. Verify summarize buttons work with and without LLM loaded
+5. Test login/register flow with multiple users
+6. Verify guardrails block off-topic queries
+7. Test language switching across all UI elements
+8. Verify dual-panel layout renders correctly on different screen sizes
+
+### Manual Verification
+- Visual inspection of the new UI layout for spacing/breathing room
+- Test system monitor values match actual resource usage
+- Verify suggested questions are relevant and clickable
+- Test group vs local query visibility with two browser sessions

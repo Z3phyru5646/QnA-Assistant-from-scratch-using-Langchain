@@ -5,7 +5,7 @@ Utility functions — File handling, logging setup, etc.
 import os
 import logging
 from pathlib import Path
-from config.settings import DATA_DIR
+from config.settings import DATA_DIR, NOTEBOOKS_DIR, MESSAGES_DIR
 
 
 def setup_logging(level=logging.INFO):
@@ -24,6 +24,8 @@ def ensure_data_directories():
         DATA_DIR / "extracted_images",
         DATA_DIR / "extracted_tables",
         DATA_DIR / "processed_texts",
+        NOTEBOOKS_DIR,
+        MESSAGES_DIR,
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)
@@ -42,7 +44,6 @@ def clean_text(text):
     """Clean and normalize text content."""
     if not text:
         return ""
-    # Remove excessive whitespace
     import re
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'\n{3,}', '\n\n', text)

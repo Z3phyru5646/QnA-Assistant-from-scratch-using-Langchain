@@ -5,6 +5,7 @@ Docs: https://www.searchapi.io/docs/google-ai-mode-api
 
 import requests
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class GoogleAIModeAPI:
                 "q": query,
             }
 
+            time.sleep(2)  # Prevent 429 Too Many Requests
             response = requests.get(SEARCHAPI_BASE, params=params, timeout=30)
             response.raise_for_status()
             result = response.json()

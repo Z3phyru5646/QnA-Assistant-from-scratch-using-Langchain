@@ -268,8 +268,9 @@ class ImagePipeline:
         if not public_url:
             raise Exception("Could not generate public URL for image.")
             
-        # 2. Call SearchApi
+            # 2. Call SearchApi
         try:
+            import time
             url = "https://www.searchapi.io/api/v1/search"
             params = {
                 "engine": "google_ai_mode",
@@ -278,6 +279,7 @@ class ImagePipeline:
                 "api_key": self.api_key
             }
             
+            time.sleep(2)  # Prevent 429 Too Many Requests
             response = requests.get(url, params=params, timeout=30)
             response.raise_for_status()
             data = response.json()

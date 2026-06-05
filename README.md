@@ -39,6 +39,7 @@ Make sure you have Python 3.8+ installed. You'll also need an API key for your L
 Clone this repository and install the required dependencies:
 # Clone the repo
 git clone [https://github.com/Z3phyru5646/QnA-Assistant-from-scratch-using-Langchain.git](https://github.com/Z3phyru5646/QnA-Assistant-from-scratch-using-Langchain.git)
+
 cd QnA-Assistant-from-scratch-using-Langchain
 
 # Create a virtual environment (optional but recommended)
